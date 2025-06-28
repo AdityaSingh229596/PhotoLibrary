@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Modal from 'react-native-modal';
-import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
-import styles from './ImageModalViewerStyle';
+import { Image } from 'react-native';
+import {
+  Box,
+  Spinner,
+} from '@gluestack-ui/themed';
 
 interface ImageModalViewerProps {
   isVisible: boolean;
@@ -14,28 +17,43 @@ const ImageModalViewer: React.FC<ImageModalViewerProps> = ({ isVisible, imageUri
 
   useEffect(() => {
     if (isVisible) {
-      setLoadingImage(true); // reset when modal opens
+      setLoadingImage(true);
     }
   }, [isVisible]);
 
   return (
-    <Modal isVisible={isVisible} onBackdropPress={onClose} onBackButtonPress={onClose} style={styles.modal}>
-      <View style={styles.imageView}>
+    <Modal
+      isVisible={isVisible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}
+    >
+      <Box
+        w="90%"
+        h="50%"
+        bg="$backgroundLight0"
+        borderRadius="$lg"
+        overflow="hidden"
+        justifyContent="center"
+        alignItems="center"
+      >
         {loadingImage && (
-          <ActivityIndicator size="large" color="black" style={styles.loader} />
+          <Spinner size="large" color="$textDark800" />
         )}
         <Image
-          resizeMode="contain"
           source={{ uri: imageUri }}
-          style={styles.image}
+          resizeMode="contain"
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+          }}
           onLoadStart={() => setLoadingImage(true)}
           onLoadEnd={() => setLoadingImage(false)}
         />
-      </View>
+      </Box>
     </Modal>
   );
 };
 
 export default ImageModalViewer;
-
-

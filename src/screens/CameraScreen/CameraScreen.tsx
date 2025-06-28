@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView, StatusBar, Image, Alert, ActivityIndicator } from 'react-native';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import storage from '@react-native-firebase/storage';
@@ -8,8 +7,16 @@ import { PERMISSIONS, RESULTS, openSettings, requestMultiple } from 'react-nativ
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Geolocation, { GeoCoordinates } from 'react-native-geolocation-service';
 import MapView from 'react-native-maps';
-import styles from './CameraScreenStyle';
 import { RootStackNavigation } from '../../navigation/RootNavigation';
+import { SafeAreaView, StatusBar, Alert } from 'react-native';
+import {
+  Box,
+  Text,
+  Image,
+  Spinner,
+  Pressable,
+} from '@gluestack-ui/themed';
+import { Platform } from 'react-native';
 
 type CameraScreenProps = NativeStackScreenProps<RootStackNavigation, 'Camera'>
 const IoniconComponent = Ionicons as unknown as React.ComponentType<any>;
@@ -219,74 +226,118 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <StatusBar hidden />
       {capturedUri ? (
-        <View style={styles.previewContainer}>
-          {uploading ? <ActivityIndicator size="large" color="white" style={{ flex: 1 }} /> :
-            <Image source={{ uri: capturedUri }} style={styles.preview} />}
-          {/* Location info overlay */}
+        <Box flex={1} justifyContent="center" alignItems="center">
+          {/* {uploading ? (
+          <Spinner size="large" color="$white" />
+        ) : ( */}
+          {uploading && <Spinner size="large" color="$white" />}
+          <Image source={{ uri: capturedUri }} alt="Preview" h="80%" w="100%" resizeMode="contain" />
+          {/* )} */}
+
+          {/* Location Overlay */}
           {location && (
-            <View style={styles.locationOverlay}>
-              <Text style={styles.locationText}>
+            <Box
+              position="absolute"
+              top="$4"
+              left="50%"
+              transform={[{ translateX: -100 }]} // approx half width
+              bg="$backgroundDark950"
+              px="$4"
+              py="$2"
+              justifyContent="center"
+              alignItems="center"
+              borderRadius="$lg"
+              zIndex={10}
+            >
+              <Text color="$white" size="sm" textAlign="center">
                 📍 {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
               </Text>
-            </View>
+            </Box>
           )}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity onPress={retakePhoto} style={styles.retakeButton}>
-              <IoniconComponent name="refresh" size={28} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 16, paddingLeft: 8 }}>Retake</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={uploadToFirebaseAndFirestore}
-              style={[styles.uploadButton, uploading && styles.uploadingButton]}
-              disabled={uploading || !location}
+          {/* Action Buttons */}
+          <Box flexDirection="row" mt="$4" justifyContent="space-around" width="100%" px="$4" zIndex={10}>
+            <Pressable
+              onPress={retakePhoto}
+              bg="$red600"
+              p="$3"
+              borderRadius="$md"
+              flexDirection="row"
+              alignItems="center"
             >
-              <IoniconComponent
-                name={uploading ? "hourglass-outline" : "cloud-upload-outline"}
-                size={28}
-                color="#fff"
-              />
-              <Text style={{ color: '#fff', fontSize: 16, paddingLeft: 8 }}>
-                {uploading ? 'Uploading...' : 'Save Photo'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+              <IoniconComponent name="refresh" size={24} color="#fff" />
+              <Text color="$white" ml="$2">Retake</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={uploadToFirebaseAndFirestore}
+              bg={uploading ? "$coolGray600" : "$green600"}
+              p="$3"
+              borderRadius="$md"
+              flexDirection="row"
+              alignItems="center"
+              disabled={uploading || !location}
+              opacity={uploading || !location ? 0.6 : 1}
+            >
+              <IoniconComponent name={uploading ? "hourglass-outline" : "cloud-upload-outline"} size={24} color="#fff" />
+              <Text color="$white" ml="$2">{uploading ? 'Uploading...' : 'Save Photo'}</Text>
+            </Pressable>
+          </Box>
+        </Box>
       ) : (
-        <View style={styles.controlContainer}>
+        <Box flex={1} justifyContent="center" alignItems="center" px="$4">
           {loading && (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Getting location...</Text>
-            </View>
+            <Box mb="$4">
+              <Text color="$white">Getting location...</Text>
+            </Box>
           )}
 
           {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={getCurrentLocation} style={styles.retryButton}>
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
+            <Box alignItems="center" mb="$4">
+              <Text color="$red500">{error}</Text>
+              <Pressable onPress={getCurrentLocation} mt="$2" px="$4" py="$2" bg="$amber600" borderRadius="$md">
+                <Text color="$white">Retry</Text>
+              </Pressable>
+            </Box>
           )}
 
           {location && (
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationInfoText}>
+            <Box mb="$8">
+              <Text color="$white">
                 Location Ready: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
               </Text>
-            </View>
+            </Box>
           )}
 
-          <TouchableOpacity onPress={handleLaunchCamera} style={styles.captureButton}>
-            <Text style={{ color: '#fff', fontSize: 16 }}>Open Camera</Text>
-          </TouchableOpacity>
+          <Pressable onPress={handleLaunchCamera} bg="$blue600" px="$6" py="$3" borderRadius="$lg" mb="$8">
+            <Text color="$white">Open Camera</Text>
+          </Pressable>
 
-          <TouchableOpacity onPress={() => navigation.navigate("Map")} style={styles.move}>
-            <Text style={{ color: '#fff', fontSize: 16, textAlign: "center" }}>Move to map</Text>
-          </TouchableOpacity>
-        </View>
+          <Pressable onPress={() => navigation.navigate('Map')} bg="$indigo700" px="$6" py="$3" borderRadius="$lg">
+            <Text color="$white" textAlign="center">Move to Map</Text>
+          </Pressable>
+          <Pressable
+            position="absolute"
+            bottom="$6"
+            right="$6"
+            bg="$blue600"
+            px="$4"
+            py="$3"
+            borderRadius="$full"
+            elevation={5}
+            shadowColor="$black"
+            shadowOffset={{ width: 0, height: 2 }}
+            shadowOpacity={0.3}
+            shadowRadius={4}
+            onPress={() => navigation.navigate('Gallery')}
+          >
+            <Text color="$white" fontWeight="bold" fontSize="$md">
+              🖼️ Gallery
+            </Text>
+          </Pressable>
+        </Box>
       )}
     </SafeAreaView>
   );

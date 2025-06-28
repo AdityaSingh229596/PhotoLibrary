@@ -1,11 +1,14 @@
 
 import React from 'react'
 import RootNavigation from './src/navigation/RootNavigation';
+import { GluestackUIProvider } from '@gluestack-ui/themed';
+import { config } from '@gluestack-ui/config';
 
 const App = () => {
-
   return (
-    <RootNavigation></RootNavigation>
+    <GluestackUIProvider config={config}>
+      <RootNavigation></RootNavigation>
+    </GluestackUIProvider>
   );
 }
 

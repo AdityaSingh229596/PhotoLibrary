@@ -4,10 +4,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native'
 import CameraScreen from '../screens/CameraScreen/CameraScreen'
 import MapScreen from '../screens/MapScreen/MapScreen'
+import PhotoGalleryScreen from '../screens/GallaryScreen/GalleryScreen'
 
 export type RootStackNavigation = {
   Camera: undefined,
   Map: undefined,
+  Gallery: undefined,
 }
 
 const RootNavigation = () => {
@@ -30,6 +32,14 @@ const RootNavigation = () => {
             fontWeight: 'bold',
           },
         }} component={MapScreen} />
+        <Stack.Screen name={'Gallery'} options={{
+          headerShown: true,
+          title: 'Photo Gallery',
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+          },
+        }} component={PhotoGalleryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
