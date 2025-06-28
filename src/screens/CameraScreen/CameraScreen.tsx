@@ -1,17 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView, StatusBar, Image, Alert, ActivityIndicator } from 'react-native';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import storage from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
-import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
-import { Platform } from 'react-native';
+import { PERMISSIONS, RESULTS, openSettings, requestMultiple } from 'react-native-permissions';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackNavigation } from '../../../App';
 import Geolocation, { GeoCoordinates } from 'react-native-geolocation-service';
-import MapView from 'react-native-maps'; 
+import MapView from 'react-native-maps';
+import styles from './CameraScreenStyle';
+import { RootStackNavigation } from '../../navigation/RootNavigation';
 
 type CameraScreenProps = NativeStackScreenProps<RootStackNavigation, 'Camera'>
+const IoniconComponent = Ionicons as unknown as React.ComponentType<any>;
 
 interface LocationData {
   latitude: number;
@@ -36,68 +37,49 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    requestLocationPermission()
-  }, [])
-  
-  useEffect(()=>{
-    getCurrentLocation();
-  },[])
+    requestAllPermissions();
+  }, []);
 
-  const requestLocationPermission = async () => {
-    let permission;
-    if (Platform.OS === 'android') {
-      permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
-    } else if (Platform.OS === 'ios') {
-      permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
-    }
+  const requestAllPermissions = async () => {
+    const permissions = Platform.select({
+      android: [PERMISSIONS.ANDROID.CAMERA, PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION],
+      ios: [PERMISSIONS.IOS.CAMERA, PERMISSIONS.IOS.LOCATION_WHEN_IN_USE],
+    });
 
-    if (!permission) {
-      console.error('Permission type is undefined');
-      return false;
-    }
-    const result = await check(permission);
+    if (!permissions) return;
 
-    if (result === RESULTS.GRANTED) {
-      return true;
-    }
+    const statuses = await requestMultiple(permissions);
 
-    if (result === RESULTS.DENIED) {
-      const requestResult = await request(permission);
-      return requestResult === RESULTS.GRANTED;
-    }
+    const cameraStatus = statuses[PERMISSIONS.ANDROID.CAMERA] || statuses[PERMISSIONS.IOS.CAMERA];
+    const locationStatus =
+      statuses[PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION] || statuses[PERMISSIONS.IOS.LOCATION_WHEN_IN_USE];
 
-    if (result === RESULTS.BLOCKED) {
+    // Camera
+    if (cameraStatus !== RESULTS.GRANTED) {
       Alert.alert(
-        'Permission Required',
-        'Please enable location permission in settings.',
+        'Camera Permission',
+        'Camera access is required to take pictures.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => openSettings() },
+          { text: 'Open Settings', onPress: () => { openSettings(); } },
         ]
       );
-      return false;
     }
 
-    return false;
-  };
-
-  useEffect(() => { requestCameraPermission() }, [])
-
-  const requestCameraPermission = async () => {
-    const permission =
-      Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA;
-
-    const status = await check(permission);
-
-    if (status === RESULTS.GRANTED) {
-      console.log('Camera permission already granted');
+    // Location
+    if (locationStatus === RESULTS.GRANTED) {
+      getCurrentLocation();
+    } else if (locationStatus === RESULTS.BLOCKED) {
+      Alert.alert(
+        'Location Permission',
+        'Please enable location access in settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => { openSettings(); } },
+        ]
+      );
     } else {
-      const result = await request(permission);
-      if (result === RESULTS.GRANTED) {
-        console.log('Camera permission granted');
-      } else {
-        Alert.alert('Permission Denied', 'Camera access is required to take pictures.');
-      }
+      Alert.alert('Location Permission Denied', 'Cannot get location without permission.');
     }
   };
 
@@ -111,7 +93,7 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
           console.log('Location obtained:', position.coords);
         },
         (error) => {
-          console.error('Location error:', error);
+          // console.error('Location error:', error);
           setError(`Location error: ${error.message}`);
           setLoading(false);
         },
@@ -124,7 +106,7 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
         }
       );
     } catch (error: any) {
-      console.error('Location error:', error);
+      // console.error('Location error:', error);
       Alert.alert('Error', `Location error: ${error.message}`);
       setLoading(false);
     }
@@ -139,11 +121,11 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
 
     launchCamera(options, response => {
       if (response.didCancel) {
-        console.log('User cancelled camera');
+        //console.log('User cancelled camera');
       } else if (response.errorCode) {
         Alert.alert('Camera error', response.errorMessage || 'Unknown error');
-      } else if (response.assets && response.assets.length > 0){
-        console.log('Image captured:', response.assets[0]);
+      } else if (response.assets && response.assets.length > 0) {
+        //console.log('Image captured:', response.assets[0]);
         const imageUri = response.assets[0].uri;
         if (imageUri) {
           setCapturedUri(imageUri);
@@ -180,13 +162,13 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
       // Monitor upload progress
       task.on('state_changed', taskSnapshot => {
         const progress = (taskSnapshot.bytesTransferred / taskSnapshot.totalBytes) * 100;
-        console.log(`Upload progress: ${progress.toFixed(2)}%`);
+        //console.log(`Upload progress: ${progress.toFixed(2)}%`);
       });
 
       // Wait for upload to complete
       await task;
       const downloadUrl = await reference.getDownloadURL();
-      console.log('Image uploaded successfully. Download URL:', downloadUrl);
+      //console.log('Image uploaded successfully. Download URL:', downloadUrl);
 
       // Prepare location data
       const locationData: LocationData = {
@@ -205,15 +187,15 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
       };
 
       // Save to Firestore
-      console.log('Saving to Firestore...');
+      //console.log('Saving to Firestore...');
       const docRef = await firestore()
         .collection('photos')
         .add(photoDocument);
 
-      console.log('Document saved with ID:', docRef.id);
+      //console.log('Document saved with ID:', docRef.id);
 
       Alert.alert(
-        'Upload Complete!', 
+        'Upload Complete!',
         `Image and location saved successfully`,
         [
           {
@@ -226,9 +208,9 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
       );
 
     } catch (error: any) {
-      console.error('Upload error:', error);
+      //console.error('Upload error:', error);
       Alert.alert(
-        'Upload Failed', 
+        'Upload Failed',
         `Error: ${error.message || 'Unknown error occurred'}`
       );
     } finally {
@@ -241,8 +223,8 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
       <StatusBar hidden />
       {capturedUri ? (
         <View style={styles.previewContainer}>
-          <Image source={{ uri: capturedUri }} style={styles.preview} />
-          
+          {uploading ? <ActivityIndicator size="large" color="white" style={{ flex: 1 }} /> :
+            <Image source={{ uri: capturedUri }} style={styles.preview} />}
           {/* Location info overlay */}
           {location && (
             <View style={styles.locationOverlay}>
@@ -251,22 +233,20 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
               </Text>
             </View>
           )}
-
           <View style={styles.buttonRow}>
             <TouchableOpacity onPress={retakePhoto} style={styles.retakeButton}>
-              <Ionicons name="refresh" size={28} color="#fff" />
+              <IoniconComponent name="refresh" size={28} color="#fff" />
               <Text style={{ color: '#fff', fontSize: 16, paddingLeft: 8 }}>Retake</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={uploadToFirebaseAndFirestore} 
+            <TouchableOpacity
+              onPress={uploadToFirebaseAndFirestore}
               style={[styles.uploadButton, uploading && styles.uploadingButton]}
               disabled={uploading || !location}
             >
-              <Ionicons 
-                name={uploading ? "hourglass-outline" : "cloud-upload-outline"} 
-                size={28} 
-                color="#fff" 
+              <IoniconComponent
+                name={uploading ? "hourglass-outline" : "cloud-upload-outline"}
+                size={28}
+                color="#fff"
               />
               <Text style={{ color: '#fff', fontSize: 16, paddingLeft: 8 }}>
                 {uploading ? 'Uploading...' : 'Save Photo'}
@@ -302,7 +282,7 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
           <TouchableOpacity onPress={handleLaunchCamera} style={styles.captureButton}>
             <Text style={{ color: '#fff', fontSize: 16 }}>Open Camera</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity onPress={() => navigation.navigate("Map")} style={styles.move}>
             <Text style={{ color: '#fff', fontSize: 16, textAlign: "center" }}>Move to map</Text>
           </TouchableOpacity>
@@ -314,124 +294,3 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
 
 export default CameraScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  previewContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  preview: {
-    flex: 1,
-    resizeMode: 'contain',
-  },
-  locationOverlay: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 10,
-    borderRadius: 5,
-  },
-  locationText: {
-    color: '#fff',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  controlContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(255, 0, 0, 0.9)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  retryButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 5,
-  },
-  retryText: {
-    color: '#ff0000',
-    fontWeight: 'bold',
-  },
-  locationInfo: {
-    backgroundColor: 'rgba(0, 255, 0, 0.9)',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  locationInfoText: {
-    fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-  },
-  captureButton: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
-  },
-  move: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
-    position: 'absolute',
-    bottom: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  retakeButton: {
-    backgroundColor: '#ff4757',
-    padding: 12,
-    borderRadius: 30,
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-  },
-  buttonRow: {
-    position: 'absolute',
-    bottom: 30,
-    // left: 30,
-    // right: 30,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    //backgroundColor:"red",
-    width: '100%',
-  },
-  uploadButton: {
-    backgroundColor: '#2ed573',
-    padding: 12,
-    borderRadius: 30,
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-  },
-  uploadingButton: {
-    backgroundColor: '#95a5a6',
-  },
-});
