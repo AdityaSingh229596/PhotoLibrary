@@ -23,7 +23,14 @@ const App = () => {
           headerShown: false,
         }}>
         <Stack.Screen name={'Camera'} component={CameraScreen} />
-        <Stack.Screen name={'Map'} component={MapScreen} />
+        <Stack.Screen name={'Map'} options={{
+          headerShown: true,
+          title: 'Map',
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+          },
+        }} component={MapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
