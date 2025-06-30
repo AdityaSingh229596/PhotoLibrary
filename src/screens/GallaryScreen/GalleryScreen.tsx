@@ -101,6 +101,7 @@ const PhotoGalleryScreen = () => {
           numColumns={numColumns}
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={false}
         />
       )}
     </Box>
