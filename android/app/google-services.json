@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444726840956",
+    "project_id": "photolibrary-cdbe6",
+    "storage_bucket": "photolibrary-cdbe6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444726840956:android:4711bee42aef1ea35ac3f9",
+        "android_client_info": {
+          "package_name": "com.photolibrary"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAISmN2HWFdjKSLEbxuYZeVkXp-_iNqqAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
